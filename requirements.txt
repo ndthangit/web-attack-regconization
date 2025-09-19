@@ -1,0 +1,3 @@
+pandas~=2.3.2
+pymongo~=4.15.0
+apache-airflow~=3.0.6

@@ -1,0 +1,13 @@
+data
+alf-airflow/logs
+alf-airflow/plugins
+alf-airflow/config
+alf-airflow/spark-3.5.1-bin-hadoop3.tgz
+.env
+
+### IntelliJ IDEA ###
+.idea
+*.iws
+*.iml
+*.ipr
+.starFactory

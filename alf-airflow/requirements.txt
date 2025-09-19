@@ -1,0 +1,6 @@
+apache-airflow-providers-google
+apache-airflow-providers-mongo
+apache-airflow-providers-apache-spark
+pandas
+pyarrow
+pyspark
