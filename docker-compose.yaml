@@ -243,41 +243,41 @@ services:
       _PIP_ADDITIONAL_REQUIREMENTS: ''
 #    user: "0:0"
 
-  mongo:
-    image: mongo
-    restart: always
-    environment:
-      MONGO_INITDB_ROOT_USERNAME: root
-      MONGO_INITDB_ROOT_PASSWORD: example
-    ports:
-      - "27017:27017"
-    volumes:
-      - ./data:/data/db
-
-
-  mongo-express:
-    image: mongo-express
-    restart: always
-    ports:
-      - 8082:8081
-    environment:
-      ME_CONFIG_MONGODB_ADMINUSERNAME: root
-      ME_CONFIG_MONGODB_ADMINPASSWORD: example
-      ME_CONFIG_MONGODB_URL: mongodb://root:example@mongo:27017/
-      ME_CONFIG_BASICAUTH: false
-
-  minio:
-    image: minio/minio:latest
-    container_name: minio
-    environment:
-      MINIO_ROOT_USER: minio
-      MINIO_ROOT_PASSWORD: minio123
-    command: server /data --console-address ":9001"
-    ports:
-      - "9000:9000"  # S3-compatible endpoint
-      - "9001:9001"  # MinIO Console
-    volumes:
-      - minio_data:/data
+#  mongo:
+#    image: mongo
+#    restart: always
+#    environment:
+#      MONGO_INITDB_ROOT_USERNAME: root
+#      MONGO_INITDB_ROOT_PASSWORD: example
+#    ports:
+#      - "27017:27017"
+#    volumes:
+#      - ./data:/data/db
+#
+#
+#  mongo-express:
+#    image: mongo-express
+#    restart: always
+#    ports:
+#      - 8082:8081
+#    environment:
+#      ME_CONFIG_MONGODB_ADMINUSERNAME: root
+#      ME_CONFIG_MONGODB_ADMINPASSWORD: example
+#      ME_CONFIG_MONGODB_URL: mongodb://root:example@mongo:27017/
+#      ME_CONFIG_BASICAUTH: false
+#
+#  minio:
+#    image: minio/minio:latest
+#    container_name: minio
+#    environment:
+#      MINIO_ROOT_USER: minio
+#      MINIO_ROOT_PASSWORD: minio123
+#    command: server /data --console-address ":9001"
+#    ports:
+#      - "9000:9000"  # S3-compatible endpoint
+#      - "9001:9001"  # MinIO Console
+#    volumes:
+#      - minio_data:/data
 
 #  spark:
 #    build: ./spark
@@ -288,34 +288,87 @@ services:
 #    volumes:
 #      - ./spark:/opt/spark_jobs
 
-  spark-master:
-      build: ./spark
-      container_name: spark-master
+#  spark-master:
+#      build: ./spark
+#      container_name: spark-master
+#
+#      user: "1001:1001"
+#      ports:
+#        - "8088:8080"  # Spark UI
+#        - "7077:7077"  # Spark Master
+#      environment:
+#        - SPARK_MODE=master
+#      volumes:
+#        - ./alf-airflow/scripts:/opt/spark-apps
+#        - shared-data:/tmp/data
+#
+#  spark-worker:
+#    build: ./spark
+#    container_name: spark-worker
+#    user: "1001:1001"
+#    depends_on:
+#      - spark-master
+#    environment:
+#      - SPARK_MODE=worker
+#      - SPARK_MASTER_URL=spark://spark-master:7077
+#    volumes:
+#      - ./alf-airflow/scripts:/opt/spark-apps
+#      - shared-data:/tmp/data
 
-      user: "1001:1001"
-      ports:
-        - "8088:8080"  # Spark UI
-        - "7077:7077"  # Spark Master
-      environment:
-        - SPARK_MODE=master
-      volumes:
-        - ./alf-airflow/scripts:/opt/spark-apps
-        - shared-data:/tmp/data
-
-  spark-worker:
-    build: ./spark
-    container_name: spark-worker
-    user: "1001:1001"
-    depends_on:
-      - spark-master
+  processed-db:
+    image: postgres:13
     environment:
-      - SPARK_MODE=worker
-      - SPARK_MASTER_URL=spark://spark-master:7077
+      POSTGRES_USER: airflow
+      POSTGRES_PASSWORD: airflow
+      POSTGRES_DB: processed
     volumes:
-      - ./alf-airflow/scripts:/opt/spark-apps
-      - shared-data:/tmp/data
+      - processed:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: [ "CMD", "pg_isready", "-d", "processed", "-U", "airflow" ]
+      interval: 10s
+      retries: 5
+      start_period: 5s
+    restart: always
+
+  attack-web-db:
+    image: postgres
+    ports:
+      - "5433:5432"
+    volumes:
+      - dbdata:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=model
+
+    container_name: attack-web-db
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  mlflow:
+    build:
+      context: ./mlflow
+      dockerfile: Dockerfile
+    container_name: mlflow_server
+
+    environment:
+      MLFLOW_TRACKING_URI: "http://127.0.0.1:5000"
+      MLFLOW_S3_ENDPOINT_URL: "http://minio:9000"
+      AWS_ACCESS_KEY_ID: "minio"
+      AWS_SECRET_ACCESS_KEY: "minio123"
+    command: mlflow server --backend-store-uri postgresql://postgres:postgres@attack-web-db:5432/model --artifacts-destination s3://bucket --host 0.0.0.0 --port 5000
+
+    ports:
+      - "5000:5000"
 
 volumes:
   postgres-db-volume:
   minio_data:
   shared-data:
+  processed:
+  dbdata:

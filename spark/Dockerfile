@@ -1,13 +1,14 @@
 FROM bitnami/spark:3.5.1
 USER root
 
+
 RUN apt-get update && apt-get install -y \
     python3 \
     python3-pip \
     && rm -rf /var/lib/apt/lists/*
 
 # Cài đặt pip và các thư viện Python cần thiết
-RUN pip3 install --no-cache-dir pyspark==3.5.1
+RUN pip3 install --no-cache-dir pandas pyspark==3.5.1
 
 # Tạo user mới với UID=1001 và GID=0 (root)
 RUN groupadd -g 1001 sparkgroup && \
@@ -31,5 +32,10 @@ USER sparkuser
 # Thiết lập environment variables
 ENV SPARK_HOME=/opt/bitnami/spark
 ENV PATH=$SPARK_HOME/bin:$PATH
+
+# Copy Hadoop AWS JAR files vào thư mục jars của Spark
+#COPY hadoop-aws-3.4.2.jar $SPARK_HOME/jars
+#COPY bundle-2.33.13.jar $SPARK_HOME/jars
+
 
 COPY . /opt/spark_jobs

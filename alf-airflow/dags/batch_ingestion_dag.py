@@ -6,7 +6,6 @@ import os
 import json
 import pandas as pd
 from airflow.providers.postgres.hooks.postgres import PostgresHook
-from airflow.providers.standard.operators.bash import BashOperator
 from airflow.providers.standard.operators.python import PythonOperator
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 from airflow.providers.mongo.hooks.mongo import MongoHook
@@ -128,21 +127,7 @@ with DAG(
         python_callable=upload_files_to_minio
     )
 
-    # trigger Spark job with BashOperator
-    # spark_transform_task = BashOperator(
-    #     task_id='spark_transform',
-    #     bash_command='spark-submit --master spark://spark-master:7077 /opt/spark_jobs/spark_batch_job.py'
-    # )
 
-    # Sử dụng SparkSubmitOperator thay vì BashOperator
-    # spark_transform_task = SparkSubmitOperator(
-    #     task_id='spark_transform',
-    #     application="/opt/spark_jobs/spark_batch_job.py",
-    #     conn_id="spark_default",
-    #     application_args=[],
-    #     name="SparkBatchJob",
-    #     verbose=True
-    # )
     run_spark = SparkSubmitOperator(
         task_id="run_spark_batch_job",
         application="/opt/airflow/scripts/spark_batch_job.py",

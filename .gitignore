@@ -11,3 +11,5 @@ alf-airflow/spark-3.5.1-bin-hadoop3.tgz
 *.iml
 *.ipr
 .starFactory
+
+experiments/mlruns
